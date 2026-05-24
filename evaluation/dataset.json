@@ -1,0 +1,146 @@
+{
+  "real_prompts": [
+    {
+      "id": "real_01",
+      "name": "CRM with payments",
+      "prompt": "Build a CRM with login, contacts management, a sales pipeline dashboard, role-based access for admin/manager/rep, and a premium plan with Stripe payments. Admins can see analytics.",
+      "expected_entities": ["User", "Contact", "Deal", "Plan", "Payment"],
+      "expected_roles": ["admin", "manager", "rep"]
+    },
+    {
+      "id": "real_02",
+      "name": "E-commerce store",
+      "prompt": "Create an e-commerce platform with product catalog, shopping cart, checkout with Stripe, order tracking, admin dashboard for inventory, and customer accounts with order history.",
+      "expected_entities": ["User", "Product", "Order", "CartItem", "Category"],
+      "expected_roles": ["admin", "customer"]
+    },
+    {
+      "id": "real_03",
+      "name": "Project management tool",
+      "prompt": "Build a project management app like Trello. Users can create boards, add lists and cards, assign tasks to team members, set due dates, and comment on cards. Admin can manage users.",
+      "expected_entities": ["User", "Board", "List", "Card", "Comment"],
+      "expected_roles": ["admin", "member", "viewer"]
+    },
+    {
+      "id": "real_04",
+      "name": "SaaS analytics dashboard",
+      "prompt": "Build a SaaS analytics platform where companies can connect their data sources, view charts and KPIs on a dashboard, invite team members, and have different subscription tiers.",
+      "expected_entities": ["Company", "User", "DataSource", "Dashboard", "Subscription"],
+      "expected_roles": ["owner", "admin", "viewer"]
+    },
+    {
+      "id": "real_05",
+      "name": "Job board marketplace",
+      "prompt": "Create a job board where employers can post jobs and manage applications, candidates can apply and track their applications, and admins moderate content. Include email notifications.",
+      "expected_entities": ["User", "Job", "Application", "Company"],
+      "expected_roles": ["admin", "employer", "candidate"]
+    },
+    {
+      "id": "real_06",
+      "name": "LMS (Learning Management System)",
+      "prompt": "Build a learning management system where instructors create courses with videos and quizzes, students enroll and track progress, and admins manage the platform. Add certificate generation.",
+      "expected_entities": ["User", "Course", "Lesson", "Quiz", "Enrollment"],
+      "expected_roles": ["admin", "instructor", "student"]
+    },
+    {
+      "id": "real_07",
+      "name": "Healthcare appointment system",
+      "prompt": "Build an appointment booking system for a clinic. Patients can book appointments with doctors, doctors manage their schedules, receptionists handle check-ins, and admins see reports.",
+      "expected_entities": ["User", "Doctor", "Patient", "Appointment", "Schedule"],
+      "expected_roles": ["admin", "doctor", "patient", "receptionist"]
+    },
+    {
+      "id": "real_08",
+      "name": "Real estate platform",
+      "prompt": "Create a real estate listing platform where agents list properties, buyers browse and save listings, schedule viewings, and submit offers. Admins verify agents.",
+      "expected_entities": ["User", "Property", "Listing", "Viewing", "Offer"],
+      "expected_roles": ["admin", "agent", "buyer"]
+    },
+    {
+      "id": "real_09",
+      "name": "Social media app",
+      "prompt": "Build a social media app where users post content, follow each other, like and comment on posts, and have a feed. Include moderation tools for admins.",
+      "expected_entities": ["User", "Post", "Comment", "Like", "Follow"],
+      "expected_roles": ["admin", "moderator", "user"]
+    },
+    {
+      "id": "real_10",
+      "name": "Restaurant ordering system",
+      "prompt": "Build a restaurant management system with online ordering, menu management, order tracking for kitchen staff, table reservations, and sales reports for managers.",
+      "expected_entities": ["User", "MenuItem", "Order", "Reservation", "Table"],
+      "expected_roles": ["admin", "manager", "kitchen", "customer"]
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "edge_01",
+      "name": "Extremely vague",
+      "prompt": "Build an app.",
+      "expected_behavior": "clarification_or_assumptions",
+      "expected_issues": ["too_vague"]
+    },
+    {
+      "id": "edge_02",
+      "name": "Single word",
+      "prompt": "CRM",
+      "expected_behavior": "assumptions_heavy",
+      "expected_issues": ["minimal_input"]
+    },
+    {
+      "id": "edge_03",
+      "name": "Conflicting roles",
+      "prompt": "Build an app where all users are admins but admins cannot access the admin panel. Regular users have full admin access but admins do not.",
+      "expected_behavior": "conflict_resolution",
+      "expected_issues": ["role_conflict"]
+    },
+    {
+      "id": "edge_04",
+      "name": "Contradictory requirements",
+      "prompt": "Build an app that is completely free but also charges users $100/month. Data should be stored but never saved. Users must login but there are no accounts.",
+      "expected_behavior": "assumption_resolution",
+      "expected_issues": ["logical_contradiction"]
+    },
+    {
+      "id": "edge_05",
+      "name": "Missing critical info",
+      "prompt": "Build a platform for our business. Add the usual features.",
+      "expected_behavior": "assumptions_with_generic_defaults",
+      "expected_issues": ["underspecified"]
+    },
+    {
+      "id": "edge_06",
+      "name": "Too many features",
+      "prompt": "Build an app with login, social feed, e-commerce, CRM, project management, analytics, AI chatbot, video streaming, file storage, payment processing, email marketing, calendar, maps integration, blockchain, AR features, real-time collaboration, and offline mode.",
+      "expected_behavior": "complete_schema_generation",
+      "expected_issues": ["scope_large"]
+    },
+    {
+      "id": "edge_07",
+      "name": "Jargon heavy",
+      "prompt": "Build a B2B SaaS multi-tenant white-label platform with SSO, RBAC, SCIM provisioning, SOC2 compliance hooks, audit logs, and a GraphQL API with federation.",
+      "expected_behavior": "technical_schema_generation",
+      "expected_issues": []
+    },
+    {
+      "id": "edge_08",
+      "name": "Incomplete sentence",
+      "prompt": "App for doctors where patients can... and the hospital admin needs to see all the... also payments",
+      "expected_behavior": "intent_inference",
+      "expected_issues": ["incomplete_input"]
+    },
+    {
+      "id": "edge_09",
+      "name": "Mid-generation requirement change simulation",
+      "prompt": "Build a basic todo app with user accounts. Actually make it a team collaboration tool with workspaces. Also add AI suggestions for task priorities.",
+      "expected_behavior": "latest_intent_wins",
+      "expected_issues": ["conflicting_scope"]
+    },
+    {
+      "id": "edge_10",
+      "name": "Non-English mixed input",
+      "prompt": "Build an app — एक CRM जिसमें contacts और dashboard हो, with login और admin panel.",
+      "expected_behavior": "multilingual_handling",
+      "expected_issues": []
+    }
+  ]
+}
