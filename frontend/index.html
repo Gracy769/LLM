@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Compiler — App Generator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #0d0d14;
+    --surface:  #14141f;
+    --surface2: #1a1a2a;
+    --border:   #2a2a3f;
+    --text:     #e8e8f0;
+    --muted:    #7070a0;
+    --purple:   #7c6ff7;
+    --teal:     #3ecfb2;
+    --coral:    #f06060;
+    --amber:    #f0a940;
+    --green:    #4caf7d;
+    --radius:   10px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--purple);
+    letter-spacing: -0.5px;
+  }
+
+  .logo span { color: var(--teal); }
+
+  .badge {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: #2a1f5f;
+    color: var(--purple);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid #3a2f7f;
+  }
+
+  /* ── Layout ── */
+  .main {
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    min-height: calc(100vh - 61px);
+  }
+
+  /* ── Left Panel ── */
+  .left {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    overflow-y: auto;
+  }
+
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 14px 16px;
+    resize: vertical;
+    min-height: 160px;
+    line-height: 1.6;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus { border-color: var(--purple); }
+
+  .examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .example-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 5px 10px;
+    transition: all 0.15s;
+  }
+
+  .example-btn:hover { border-color: var(--purple); color: var(--text); }
+
+  .compile-btn {
+    background: var(--purple);
+    border: none;
+    border-radius: var(--radius);
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    padding: 14px 20px;
+    transition: all 0.2s;
+    width: 100%;
+  }
+
+  .compile-btn:hover:not(:disabled) { background: #9080ff; transform: translateY(-1px); }
+  .compile-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Pipeline Stages ── */
+  .pipeline {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .stage {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s;
+  }
+
+  .stage.active  { border-color: var(--purple); background: #1a1430; }
+  .stage.done    { border-color: var(--teal);   background: #0f2420; }
+  .stage.error   { border-color: var(--coral);  background: #201414; }
+
+  .stage-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+
+  .stage.active .stage-icon  { background: var(--purple); border-color: var(--purple); color: white; }
+  .stage.done  .stage-icon   { background: var(--teal);   border-color: var(--teal);   color: #0a2018; }
+  .stage.error .stage-icon   { background: var(--coral);  border-color: var(--coral);  color: white; }
+
+  .stage-info { flex: 1; min-width: 0; }
+  .stage-name { font-size: 13px; font-weight: 500; }
+  .stage-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .stage-time { font-size: 11px; color: var(--teal); font-family: monospace; white-space: nowrap; }
+
+  /* Spinner */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid transparent;
+    border-top-color: var(--purple);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  /* ── Right Panel ── */
+  .right {
+    overflow-y: auto;
+    padding: 32px 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 16px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .placeholder-icon { font-size: 48px; opacity: 0.3; }
+  .placeholder h2 { font-size: 20px; font-weight: 500; color: var(--text); opacity: 0.5; }
+  .placeholder p  { font-size: 13px; max-width: 300px; line-height: 1.6; }
+
+  /* Metrics bar */
+  .metrics-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .metric {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .metric-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--purple);
+    font-family: monospace;
+    line-height: 1;
+  }
+
+  .metric-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 2px; background: var(--surface); border-radius: var(--radius); padding: 4px; border: 1px solid var(--border); }
+
+  .tab {
+    background: transparent;
+    border: none;
+    border-radius: 7px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    padding: 7px 14px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .tab:hover  { color: var(--text); }
+  .tab.active { background: var(--surface2); color: var(--text); }
+
+  .tab-count {
+    display: inline-block;
+    background: var(--purple);
+    color: white;
+    border-radius: 10px;
+    font-size: 9px;
+    padding: 1px 5px;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
+  /* JSON viewer */
+  .json-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .json-header {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .json-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+
+  .copy-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 11px;
+    padding: 4px 10px;
+    transition: all 0.15s;
+  }
+
+  .copy-btn:hover { border-color: var(--purple); color: var(--purple); }
+
+  pre {
+    background: transparent;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-x: auto;
+    padding: 16px 18px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 500px;
+    overflow-y: auto;
+  }
+
+  /* Syntax highlight */
+  .json-key   { color: #7c9bff; }
+  .json-str   { color: #98e4b0; }
+  .json-num   { color: #f0b060; }
+  .json-bool  { color: #f06080; }
+  .json-null  { color: var(--muted); }
+
+  /* Issues & notes */
+  .issue-list { display: flex; flex-direction: column; gap: 6px; }
+
+  .issue-item {
+    background: var(--surface);
+    border-left: 3px solid var(--amber);
+    border-radius: 0 6px 6px 0;
+    font-size: 12px;
+    padding: 8px 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .issue-item.error  { border-left-color: var(--coral); }
+  .issue-item.note   { border-left-color: var(--teal); }
+  .issue-item.assume { border-left-color: var(--purple); }
+
+  /* Error state */
+  .error-box {
+    background: #1a0a0a;
+    border: 1px solid var(--coral);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .error-box h3 { color: var(--coral); margin-bottom: 8px; }
+  .error-box p  { color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .left  { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">AI<span>Compiler</span></div>
+  <div class="badge">v1.0 · 5-stage pipeline</div>
+</header>
+
+<div class="main">
+
+  <!-- Left Panel -->
+  <div class="left">
+
+    <div>
+      <div class="section-label">App Description</div>
+      <textarea id="prompt" placeholder="Describe your app in plain English...
+
+Example: Build a CRM with login, contacts, dashboard, role-based access for admin/manager/rep, and a premium plan with Stripe payments. Admins can see analytics."></textarea>
+    </div>
+
+    <div>
+      <div class="section-label">Quick Examples</div>
+      <div class="examples">
+        <button class="example-btn" onclick="setExample('crm')">CRM + Payments</button>
+        <button class="example-btn" onclick="setExample('ecom')">E-commerce</button>
+        <button class="example-btn" onclick="setExample('lms')">LMS</button>
+        <button class="example-btn" onclick="setExample('saas')">SaaS Dashboard</button>
+        <button class="example-btn" onclick="setExample('vague')">Vague (edge)</button>
+        <button class="example-btn" onclick="setExample('conflict')">Conflicting (edge)</button>
+      </div>
+    </div>
+
+    <button class="compile-btn" id="compileBtn" onclick="compile()">
+      ▶ Compile App
+    </button>
+
+    <div>
+      <div class="section-label">Pipeline Stages</div>
+      <div class="pipeline" id="pipeline">
+        <div class="stage" id="s1">
+          <div class="stage-icon">1</div>
+          <div class="stage-info">
+            <div class="stage-name">Intent Extraction</div>
+            <div class="stage-desc">Parse features, entities, roles</div>
+          </div>
+          <span class="stage-time" id="t1"></span>
+        </div>
+        <div class="stage" id="s2">
+          <div class="stage-icon">2</div>
+          <div class="stage-info">
+            <div class="stage-name">System Design</div>
+            <div class="stage-desc">Entities, flows, permissions, pages</div>
+          </div>
+          <span class="stage-time" id="t2"></span>
+        </div>
+        <div class="stage" id="s3">
+          <div class="stage-icon">3</div>
+          <div class="stage-info">
+            <div class="stage-name">Schema Generation</div>
+            <div class="stage-desc">DB + API + UI + Auth schemas</div>
+          </div>
+          <span class="stage-time" id="t3"></span>
+        </div>
+        <div class="stage" id="s4">
+          <div class="stage-icon">4</div>
+          <div class="stage-info">
+            <div class="stage-name">Validation + Repair</div>
+            <div class="stage-desc">Cross-layer consistency checks</div>
+          </div>
+          <span class="stage-time" id="t4"></span>
+        </div>
+        <div class="stage" id="s5">
+          <div class="stage-icon">✓</div>
+          <div class="stage-info">
+            <div class="stage-name">Output Ready</div>
+            <div class="stage-desc">Executable JSON config</div>
+          </div>
+          <span class="stage-time" id="t5"></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right Panel -->
+  <div class="right" id="output">
+    <div class="placeholder">
+      <div class="placeholder-icon">⚙</div>
+      <h2>Ready to compile</h2>
+      <p>Enter an app description and hit Compile. The pipeline will generate a complete, validated JSON config — DB schema, API endpoints, UI components, and auth rules.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:8000'
+  : '';
+
+const EXAMPLES = {
+  crm:      "Build a CRM with login, contacts management, a sales pipeline dashboard, role-based access for admin/manager/rep, and a premium plan with Stripe payments. Admins can see analytics.",
+  ecom:     "Create an e-commerce platform with product catalog, shopping cart, checkout with Stripe, order tracking, admin dashboard for inventory management, and customer accounts with order history.",
+  lms:      "Build a learning management system where instructors create courses with videos and quizzes, students enroll and track their progress, and admins manage the platform. Add certificate generation on completion.",
+  saas:     "Build a SaaS analytics platform where companies connect data sources, view charts and KPIs on a dashboard, invite team members, and have different subscription tiers with feature gating.",
+  vague:    "Build an app.",
+  conflict: "Build an app where all users are admins but admins cannot access the admin panel. Regular users have full admin access but admins do not."
+};
+
+function setExample(key) {
+  document.getElementById('prompt').value = EXAMPLES[key];
+}
+
+function setStage(n, state, time) {
+  const el = document.getElementById('s' + n);
+  el.className = 'stage ' + state;
+  if (state === 'active') {
+    const icon = el.querySelector('.stage-icon');
+    icon.innerHTML = '<div class="spinner"></div>';
+  } else if (state === 'done') {
+    el.querySelector('.stage-icon').textContent = '✓';
+  } else if (state === 'error') {
+    el.querySelector('.stage-icon').textContent = '✗';
+  }
+  if (time) document.getElementById('t' + n).textContent = time + 's';
+}
+
+function resetStages() {
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById('s' + i);
+    el.className = 'stage';
+    el.querySelector('.stage-icon').textContent = i === 5 ? '✓' : i;
+    document.getElementById('t' + i).textContent = '';
+  }
+}
+
+function syntaxHighlight(json) {
+  const str = typeof json === 'string' ? json : JSON.stringify(json, null, 2);
+  return str.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+    let cls = 'json-num';
+    if (/^"/.test(m)) cls = /:$/.test(m) ? 'json-key' : 'json-str';
+    else if (/true|false/.test(m)) cls = 'json-bool';
+    else if (/null/.test(m)) cls = 'json-null';
+    return `<span class="${cls}">${m}</span>`;
+  });
+}
+
+function copyJSON(id) {
+  const pre = document.getElementById(id);
+  navigator.clipboard.writeText(pre.textContent);
+}
+
+function jsonPanel(title, data, id) {
+  const count = Array.isArray(data) ? data.length :
+    (data.tables || data.endpoints || data.pages || data.rules || []).length;
+  return `
+    <div class="json-panel">
+      <div class="json-header">
+        <span class="json-title">${title} ${count ? `<span style="color:var(--purple)">(${count})</span>` : ''}</span>
+        <button class="copy-btn" onclick="copyJSON('pre-${id}')">copy JSON</button>
+      </div>
+      <pre id="pre-${id}">${syntaxHighlight(data)}</pre>
+    </div>`;
+}
+
+let currentTab = 'overview';
+let lastResult = null;
+
+function showTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  renderTab(lastResult);
+}
+
+function renderTab(result) {
+  if (!result) return;
+  const out = document.getElementById('tabContent');
+  if (!out) return;
+
+  if (currentTab === 'overview') {
+    const intent = result.intent || {};
+    const sd = result.system_design || {};
+    out.innerHTML = `
+      <div class="json-panel">
+        <div class="json-header"><span class="json-title">App Intent</span></div>
+        <pre>${syntaxHighlight(intent)}</pre>
+      </div>
+      <div class="json-panel" style="margin-top:16px">
+        <div class="json-header"><span class="json-title">System Design</span></div>
+        <pre>${syntaxHighlight(sd)}</pre>
+      </div>`;
+  } else if (currentTab === 'db') {
+    out.innerHTML = jsonPanel('Database Schema', result.db_schema, 'db');
+  } else if (currentTab === 'api') {
+    out.innerHTML = jsonPanel('API Schema', result.api_schema, 'api');
+  } else if (currentTab === 'ui') {
+    out.innerHTML = jsonPanel('UI Schema', result.ui_schema, 'ui');
+  } else if (currentTab === 'auth') {
+    out.innerHTML = jsonPanel('Auth Schema', result.auth_schema, 'auth');
+  } else if (currentTab === 'notes') {
+    const issues   = result.issues_found   || [];
+    const notes    = result.refinement_notes || [];
+    const assumes  = result.assumptions || [];
+    out.innerHTML = `
+      <div class="section-label" style="margin-bottom:8px">Issues Detected (${issues.length})</div>
+      <div class="issue-list">${issues.length
+        ? issues.map(i => `<div class="issue-item ${i.includes('[ERROR]') ? 'error' : ''}">${i}</div>`).join('')
+        : '<div class="issue-item note">No issues — all schemas are consistent ✓</div>'
+      }</div>
+      <div class="section-label" style="margin:20px 0 8px">Refinement Notes (${notes.length})</div>
+      <div class="issue-list">${notes.length
+        ? notes.map(n => `<div class="issue-item note">${n}</div>`).join('')
+        : '<div class="issue-item note">No refinements needed</div>'
+      }</div>
+      <div class="section-label" style="margin:20px 0 8px">Assumptions Made (${assumes.length})</div>
+      <div class="issue-list">${assumes.map(a => `<div class="issue-item assume">${a}</div>`).join('') || '<div class="issue-item note">None</div>'}</div>`;
+  }
+}
+
+function renderResult(result) {
+  lastResult = result;
+  const m = result.metrics || {};
+  const tables    = (result.db_schema?.tables   || []).length;
+  const endpoints = (result.api_schema?.endpoints || []).length;
+  const pages     = (result.ui_schema?.pages      || []).length;
+  const rules     = (result.auth_schema?.rules    || []).length;
+  const issues    = (result.issues_found || []).length;
+  const notes     = (result.refinement_notes || []).length;
+  const assumes   = (result.assumptions || []).length;
+
+  document.getElementById('output').innerHTML = `
+    <div class="metrics-bar">
+      <div class="metric"><div class="metric-value">${m.total_latency_seconds || '—'}s</div><div class="metric-label">Total time</div></div>
+      <div class="metric"><div class="metric-value">${tables}</div><div class="metric-label">DB Tables</div></div>
+      <div class="metric"><div class="metric-value">${endpoints}</div><div class="metric-label">Endpoints</div></div>
+      <div class="metric"><div class="metric-value">${pages}</div><div class="metric-label">UI Pages</div></div>
+      <div class="metric"><div class="metric-value">${rules}</div><div class="metric-label">Auth Rules</div></div>
+      <div class="metric"><div class="metric-value" style="color:${issues > 0 ? 'var(--amber)' : 'var(--teal)'}">${issues}</div><div class="metric-label">Issues found</div></div>
+      <div class="metric"><div class="metric-value">${m.retries || 0}</div><div class="metric-label">Retries</div></div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="overview" onclick="showTab('overview')">Overview</button>
+      <button class="tab" data-tab="db"    onclick="showTab('db')">Database<span class="tab-count">${tables}</span></button>
+      <button class="tab" data-tab="api"   onclick="showTab('api')">API<span class="tab-count">${endpoints}</span></button>
+      <button class="tab" data-tab="ui"    onclick="showTab('ui')">UI<span class="tab-count">${pages}</span></button>
+      <button class="tab" data-tab="auth"  onclick="showTab('auth')">Auth<span class="tab-count">${rules}</span></button>
+      <button class="tab" data-tab="notes" onclick="showTab('notes')">Notes ${issues+notes+assumes > 0 ? `<span class="tab-count" style="background:var(--amber)">${issues+notes+assumes}</span>` : ''}</button>
+    </div>
+
+    <div id="tabContent"></div>`;
+
+  currentTab = 'overview';
+  renderTab(result);
+}
+
+function renderError(error) {
+  document.getElementById('output').innerHTML = `
+    <div class="error-box">
+      <h3>Pipeline failed</h3>
+      <p>${error}</p>
+    </div>`;
+}
+
+// Pipeline stage timing simulation (stages run server-side, we animate client-side)
+let stageInterval = null;
+
+function startStageAnimation(timings) {
+  // If we have real timings, use them; otherwise animate progressively
+  const stages = ['1_intent_extraction','2_system_design','3_schema_generation','4_validation_refinement'];
+  let i = 0;
+  stageInterval = setInterval(() => {
+    if (i > 0) setStage(i, 'done', timings?.['stage_' + i] || '');
+    if (i < stages.length) setStage(i + 1, 'active');
+    i++;
+    if (i >= stages.length + 1) clearInterval(stageInterval);
+  }, 1200);
+}
+
+async function compile() {
+  const prompt = document.getElementById('prompt').value.trim();
+  if (!prompt) { alert('Please enter an app description.'); return; }
+
+  const btn = document.getElementById('compileBtn');
+  btn.disabled = true;
+  btn.textContent = '⟳ Compiling...';
+
+  resetStages();
+  setStage(1, 'active');
+
+  // Start animation
+  let stageIdx = 1;
+  stageInterval = setInterval(() => {
+    if (stageIdx > 1) setStage(stageIdx - 1, 'done');
+    if (stageIdx <= 4) { setStage(stageIdx, 'active'); stageIdx++; }
+    else clearInterval(stageInterval);
+  }, 1400);
+
+  try {
+    const resp = await fetch(`${API}/compile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+
+    clearInterval(stageInterval);
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+      throw new Error(err.detail || `HTTP ${resp.status}`);
+    }
+
+    const result = await resp.json();
+
+    // Mark stages done with real timings
+    const t = result.metrics?.stage_timings || {};
+    setStage(1, 'done', t['1_intent_extraction']);
+    setStage(2, 'done', t['2_system_design']);
+    setStage(3, 'done', t['3_schema_generation']);
+    setStage(4, 'done', t['4_validation_refinement']);
+    setStage(5, 'done');
+
+    if (result.success) {
+      renderResult(result);
+    } else {
+      setStage(5, 'error');
+      renderError(result.error || 'Unknown pipeline error');
+    }
+
+  } catch (e) {
+    clearInterval(stageInterval);
+    for (let i = 1; i <= 5; i++) setStage(i, 'error');
+    renderError(`${e.message} — Make sure the backend is running: uvicorn api.server:app --reload`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▶ Compile App';
+  }
+}
+
+// Allow Enter+Ctrl to compile
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') compile();
+});
+</script>
+</body>
+</html>
